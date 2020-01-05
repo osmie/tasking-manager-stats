@@ -28,3 +28,11 @@ table.greyGridTable thead th:first-child {
   border-left: none;
 }
 
+
+html {
+    min-height: 100%;
+}
+footer {
+    position: absolute;
+    bottom: 0;
+}
