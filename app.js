@@ -53,13 +53,24 @@ async function load_tm() {
 async function load_campaign() {
     let campaign_details = document.getElementById("campaign_details");
     let campaign = document.getElementById("campaign_name").value;
+    let tasking_manager_url = get_tasking_manager_url();
     campaign_details.innerHTML = `Loading ${campaign}...`;
 
-    let tasking_manager_url = get_tasking_manager_url();
-    let resp = await fetch(tasking_manager_url + "/api/v1/project/search?campaign_tag="+campaign);
-    let projects = await resp.json();
+    let all_projects = [];
+    let resp, projects;
+    let page_num = 1;
+
+    do {
+        resp = await fetch(`${tasking_manager_url}/api/v1/project/search?page=${page_num}&campaign_tag=${campaign}`);
+        projects = await resp.json();
+        for (var p in projects.results) {
+            all_projects.push(projects.results[p]);
+        }
+        page_num++;
+    } while (projects.pagination.hasNext)
+    console.log(all_projects);
+
     
-    let all_projects = projects.results;
     all_projects.sort((p1, p2) => { if (p1.name < p2.name) { return -1; } else if (p1.name == p2.name) { return 0; } else if (p1.name > p2.name) { return 1; }});
 
     campaign_details.innerHTML = "";
@@ -123,6 +134,7 @@ async function load_project() {
         let percent_mapped_in_period = 100.0*mapped_in_period/total_tasks;
         let mapped_per_day = mapped_in_period / (new Date() - since) * 86400000;
         console.log("mapped_per_day = ", mapped_per_day);
+        let days_for_remaining_tasks = num_remaining_tasks / mapped_per_day;
 
         console.groupEnd();
         return html("tr", {}, [
@@ -130,7 +142,7 @@ async function load_project() {
             td(String(mapped_in_period)),
             td(`${percent_mapped_in_period.toFixed(2)}%`),
             td(`${mapped_in_period.toFixed(2)} tasks/day`),
-            td("N/A")
+            td(`${days_for_remaining_tasks.toFixed(1)} days`),
         ]);
     }
 
