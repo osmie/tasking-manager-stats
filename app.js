@@ -20,6 +20,7 @@ function html(elementName, attrs, childNodes_or_innerHTML) {
 }
 function td(content) { return html("td", {}, content) }
 function th(content) { return html("th", {}, content) }
+function div(content) { return html("div", {}, content) }
 
 async function load_tm() {
     let base = document.getElementById("base");
@@ -84,8 +85,10 @@ async function load_project() {
     let activity = await resp.json();
 
     let max_pages = activity.pagination.pages;
-    let history_load_progress = html("span", {}, ["Loading...", html("progress", {"id": "loading_history", "max":max_pages, "value": 0})]);
-    project_details.append(history_load_progress);
+    //if (max_pages > 5) { max_pages = 5; }
+    let history_load_progress = html("progress", {"id": "loading_history", "max":max_pages, "value": 0});
+    let history_load = html("span", {}, ["Loading...", history_load_progress]);
+    project_details.append(history_load);
 
     // TODO replace this with some sort of parallel fetch/Promise
     let all_history = []
@@ -101,25 +104,36 @@ async function load_project() {
         history_load_progress.setAttribute("value", page);
     }
 
-    history_load_progress.remove();
+    history_load.remove();
 
     let project_created = new Date(project.created);
     let now = new Date();
     let mapping_events = all_history.map(e => new Date(e.actionDate));
     mapping_events.sort();
 
-    console.log(mapping_events);
-
-
     let project_age = now - project_created;
+    let total_tasks = project.tasks.features.length;
+
+    let tasks_per_ms = mapping_events.length / project_age;
+    let tasks_per_day = tasks_per_ms * ( 86400000 );
+    let num_remaining_tasks = total_tasks - mapping_events.length;
+    let days_for_remaining_tasks = num_remaining_tasks / tasks_per_day;
 
     project_details.append(html("div", {},
-        [ "Mapping Rate", 
-            html("table", {},
+        [
+            div([`${total_tasks} tasks in total`]),
+            html("table", {"class": "greyGridTable"},
             [
-                html("tr", {}, [ th("Since When"), th("Rate"), th("Est. Finished") ] ),
-                html("tr", {}, [ td("Since start"), td("N/A"), td("N/A") ] ),
+                html("tr", {}, [ th("Since When"), th("Tasks done"), th("% total tasks done"), th("Rate"), th("Est. Finished") ] ),
+                html("tr", {}, [
+                    td(`Since start (${project_created})`),
+                    td(String(mapping_events.length)),
+                    td(`${(mapping_events.length*100.0/total_tasks).toFixed(1)}%`),
+                    td(`${tasks_per_day.toFixed(2)} tasks/day`),
+                    td(`${days_for_remaining_tasks.toFixed(1)} days`)
+                ] ),
             ])
         ]));
 
 }
+
