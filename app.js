@@ -135,18 +135,22 @@ async function load_project(project_id) {
     let project_age = now - project_created;
     let total_tasks = project.tasks.features.length;
 
-    function stats_since(mapping_events, total_tasks, since, label) {
+    function stats_since(mapping_events, total_tasks, now, duration, label) {
+        let cut_off_date = now - duration;
         let num_remaining_tasks = total_tasks - mapping_events.length;
-        let mapped_in_period = mapping_events.filter(d => d >= since).length;
+        let mapped_in_period = mapping_events.filter(d => d >= cut_off_date).length;
+
         let percent_mapped_in_period = 100.0*mapped_in_period/total_tasks;
-        let mapped_per_day = mapped_in_period / (new Date() - since) * 86400000;
-        let days_for_remaining_tasks = num_remaining_tasks / mapped_per_day;
+
+        let rate_tasks_per_ms = mapped_in_period / duration;
+        let rate_tasks_per_day = rate_tasks_per_ms * 86400000;
+        let days_for_remaining_tasks = num_remaining_tasks / rate_tasks_per_day;
 
         return html("tr", {}, [
             td(label),
             td(String(mapped_in_period)),
             td(`${percent_mapped_in_period.toFixed(2)}%`),
-            td(`${mapped_in_period.toFixed(2)} tasks/day`),
+            td(`${rate_tasks_per_day.toFixed(2)} tasks/day`),
             td(`${days_for_remaining_tasks.toFixed(1)} days`),
         ]);
     }
@@ -163,11 +167,11 @@ async function load_project(project_id) {
             div([`${total_tasks} tasks in total`]),
             html("table", {"class": "greyGridTable"},
             [
-                html("tr", {}, [ th("Since When"), th("Tasks done"), th("% total tasks done"), th("Rate"), th("Est. Finished") ] ),
-                stats_since(mapping_events, total_tasks, new Date(now - 1 * 60 * 60 * 1000), "Since 1 hr ago"),
-                stats_since(mapping_events, total_tasks, new Date(now - days(1)), "Since 24hrs ago"),
-                stats_since(mapping_events, total_tasks, new Date(now - days(7)), "Since 1 week ago"),
-                stats_since(mapping_events, total_tasks, new Date(now - days(30)), "Since 30 days ago"),
+                html("tr", {}, [ th("Time period"), th("Tasks done"), th("% total"), th("Rate"), th("ETA @ this rate") ] ),
+                stats_since(mapping_events, total_tasks, now, 1 * 60 * 60 * 1000, "Since 1 hr ago"),
+                stats_since(mapping_events, total_tasks, now, days(1), "Since 24 hrs ago"),
+                stats_since(mapping_events, total_tasks, now, days(7), "Since 1 week ago"),
+                stats_since(mapping_events, total_tasks, now, days(30), "Since 30 days ago"),
                 html("tr", {}, [
                     td(`Since start (${project_created.toDateString()})`),
                     td(String(mapping_events.length)),
