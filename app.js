@@ -68,8 +68,6 @@ async function load_campaign() {
         }
         page_num++;
     } while (projects.pagination.hasNext)
-    console.log(all_projects);
-
     
     all_projects.sort((p1, p2) => { if (p1.name < p2.name) { return -1; } else if (p1.name == p2.name) { return 0; } else if (p1.name > p2.name) { return 1; }});
 
@@ -80,6 +78,10 @@ async function load_campaign() {
         let project_id = project.projectId;
         campaign_details.append(html("details", {"closed": "closed"}, [
             html("summary", {}, String(project.name)),
+            html("span", {}, [
+                `Currently ${project.percentMapped}% mapped.`,
+                html("a", {"href": `${tasking_manager_url}/project/${project_id}`}, "View on TM"),
+            ]),
             html("button", {"onclick": `load_project(${project_id})`}, "Load"),
             html("div", {"id": `project_details_${project_id}`}),
         ]));
@@ -88,8 +90,7 @@ async function load_campaign() {
 
 async function load_project(project_id) {
     let tasking_manager_url = get_tasking_manager_url();
-    let project_details = document.getElementById(`project_details_${project_id}`);
-    project_details.innerHTML = "";
+    let project_details = document.getElementById(`project_details_${project_id}`); project_details.innerHTML = "";
 
     let resp = await fetch(tasking_manager_url + "/api/v1/project/"+project_id);
     let project = await resp.json();
@@ -120,13 +121,16 @@ async function load_project(project_id) {
 
     let project_created = new Date(project.created);
     let now = new Date();
-    let mapping_events = all_history.map(e => new Date(e.actionDate));
+
+    // Force the datetime to be parsed in UTC
+    let mapping_events = all_history.map(e => new Date(e.actionDate+"Z"));
     mapping_events.sort();
+
     let project_age = now - project_created;
     let total_tasks = project.tasks.features.length;
 
-    function stats_since(mapping_events, total_tasks, since) {
-        console.group(`Starting for ${since}`);
+    function stats_since(mapping_events, total_tasks, since, label) {
+        console.group(`Starting for ${since}: ${label}`);
         let num_remaining_tasks = total_tasks - mapping_events.length;
         console.log("num_remaining_tasks = ", num_remaining_tasks);
         let mapped_in_period = mapping_events.filter(d => d >= since).length;
@@ -138,7 +142,7 @@ async function load_project(project_id) {
 
         console.groupEnd();
         return html("tr", {}, [
-            td(`Since ${since.toDateString()}`),
+            td(label),
             td(String(mapped_in_period)),
             td(`${percent_mapped_in_period.toFixed(2)}%`),
             td(`${mapped_in_period.toFixed(2)} tasks/day`),
@@ -160,9 +164,10 @@ async function load_project(project_id) {
             html("table", {"class": "greyGridTable"},
             [
                 html("tr", {}, [ th("Since When"), th("Tasks done"), th("% total tasks done"), th("Rate"), th("Est. Finished") ] ),
-                stats_since(mapping_events, total_tasks, new Date(now - days(1))),
-                stats_since(mapping_events, total_tasks, new Date(now - days(7))),
-                stats_since(mapping_events, total_tasks, new Date(now - days(30))),
+                stats_since(mapping_events, total_tasks, new Date(now - 1 * 60 * 60 * 1000), "Since 1 hr ago"),
+                stats_since(mapping_events, total_tasks, new Date(now - days(1)), "Since 24hrs ago"),
+                stats_since(mapping_events, total_tasks, new Date(now - days(7)), "Since 1 week ago"),
+                stats_since(mapping_events, total_tasks, new Date(now - days(30)), "Since 30 days ago"),
                 html("tr", {}, [
                     td(`Since start (${project_created.toDateString()})`),
                     td(String(mapping_events.length)),
