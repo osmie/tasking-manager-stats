@@ -74,12 +74,12 @@ async function load_campaign() {
 
 async function load_project() {
     let tasking_manager_url = get_tasking_manager_url();
+    let project_id = document.getElementById("project_id").value;
     let project_details = document.getElementById("project_details");
 
     let resp = await fetch(tasking_manager_url + "/api/v1/project/"+project_id);
     let project = await resp.json();
 
-    let project_id = document.getElementById("project_id").value;
     resp = await fetch(tasking_manager_url + "/api/v1/stats/project/"+project_id+"/activity");
     let activity = await resp.json();
 
