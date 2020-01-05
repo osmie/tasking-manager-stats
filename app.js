@@ -77,6 +77,7 @@ async function load_project() {
     let tasking_manager_url = get_tasking_manager_url();
     let project_id = document.getElementById("project_id").value;
     let project_details = document.getElementById("project_details");
+    project_details.innerHTML = "";
 
     let resp = await fetch(tasking_manager_url + "/api/v1/project/"+project_id);
     let project = await resp.json();
@@ -110,9 +111,31 @@ async function load_project() {
     let now = new Date();
     let mapping_events = all_history.map(e => new Date(e.actionDate));
     mapping_events.sort();
-
     let project_age = now - project_created;
     let total_tasks = project.tasks.features.length;
+
+    function stats_since(mapping_events, total_tasks, since) {
+        console.group(`Starting for ${since}`);
+        let num_remaining_tasks = total_tasks - mapping_events.length;
+        console.log("num_remaining_tasks = ", num_remaining_tasks);
+        let mapped_in_period = mapping_events.filter(d => d >= since).length;
+        console.log("mapped_in_period = ", mapped_in_period);
+        let percent_mapped_in_period = 100.0*mapped_in_period/total_tasks;
+        let mapped_per_day = mapped_in_period / (new Date() - since) * 86400000;
+        console.log("mapped_per_day = ", mapped_per_day);
+
+        console.groupEnd();
+        return html("tr", {}, [
+            td(`Since ${since.toDateString()}`),
+            td(String(mapped_in_period)),
+            td(`${percent_mapped_in_period.toFixed(2)}%`),
+            td(`${mapped_in_period.toFixed(2)} tasks/day`),
+            td("N/A")
+        ]);
+    }
+
+
+    function days(d) { return d * 86400000; }
 
     let tasks_per_ms = mapping_events.length / project_age;
     let tasks_per_day = tasks_per_ms * ( 86400000 );
@@ -125,8 +148,11 @@ async function load_project() {
             html("table", {"class": "greyGridTable"},
             [
                 html("tr", {}, [ th("Since When"), th("Tasks done"), th("% total tasks done"), th("Rate"), th("Est. Finished") ] ),
+                stats_since(mapping_events, total_tasks, new Date(now - days(1))),
+                stats_since(mapping_events, total_tasks, new Date(now - days(7))),
+                stats_since(mapping_events, total_tasks, new Date(now - days(30))),
                 html("tr", {}, [
-                    td(`Since start (${project_created})`),
+                    td(`Since start (${project_created.toDateString()})`),
                     td(String(mapping_events.length)),
                     td(`${(mapping_events.length*100.0/total_tasks).toFixed(1)}%`),
                     td(`${tasks_per_day.toFixed(2)} tasks/day`),
