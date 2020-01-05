@@ -130,17 +130,12 @@ async function load_project(project_id) {
     let total_tasks = project.tasks.features.length;
 
     function stats_since(mapping_events, total_tasks, since, label) {
-        console.group(`Starting for ${since}: ${label}`);
         let num_remaining_tasks = total_tasks - mapping_events.length;
-        console.log("num_remaining_tasks = ", num_remaining_tasks);
         let mapped_in_period = mapping_events.filter(d => d >= since).length;
-        console.log("mapped_in_period = ", mapped_in_period);
         let percent_mapped_in_period = 100.0*mapped_in_period/total_tasks;
         let mapped_per_day = mapped_in_period / (new Date() - since) * 86400000;
-        console.log("mapped_per_day = ", mapped_per_day);
         let days_for_remaining_tasks = num_remaining_tasks / mapped_per_day;
 
-        console.groupEnd();
         return html("tr", {}, [
             td(label),
             td(String(mapped_in_period)),
@@ -149,7 +144,6 @@ async function load_project(project_id) {
             td(`${days_for_remaining_tasks.toFixed(1)} days`),
         ]);
     }
-
 
     function days(d) { return d * 86400000; }
 
