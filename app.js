@@ -121,8 +121,5 @@ async function load_project() {
                 html("tr", {}, [ td("Since start"), td("N/A"), td("N/A") ] ),
             ])
         ]));
-    
 
 }
-
-function 
