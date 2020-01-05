@@ -75,19 +75,20 @@ async function load_campaign() {
 
     campaign_details.innerHTML = "";
     campaign_details.append(html("div", {}, `There are ${projects.results.length} projects in campaign ${campaign}`));
-    campaign_details.append(html("select", {"id": "project_id"},
-        all_projects.map(p => html("option", {"value": p.projectId}, `${p.projectId} ${p.name}`))
-    ));
-    campaign_details.append(html("button", {"onclick": "load_project()"}, "Load Project"));
-    campaign_details.append(html("div", {'id': 'project_details'}));
-
-
+    for (var p in all_projects) {
+        let project = all_projects[p];
+        let project_id = project.projectId;
+        campaign_details.append(html("details", {"closed": "closed"}, [
+            html("summary", {}, String(project.name)),
+            html("button", {"onclick": `load_project(${project_id})`}, "Load"),
+            html("div", {"id": `project_details_${project_id}`}),
+        ]));
+    }
 }
 
-async function load_project() {
+async function load_project(project_id) {
     let tasking_manager_url = get_tasking_manager_url();
-    let project_id = document.getElementById("project_id").value;
-    let project_details = document.getElementById("project_details");
+    let project_details = document.getElementById(`project_details_${project_id}`);
     project_details.innerHTML = "";
 
     let resp = await fetch(tasking_manager_url + "/api/v1/project/"+project_id);
@@ -97,7 +98,6 @@ async function load_project() {
     let activity = await resp.json();
 
     let max_pages = activity.pagination.pages;
-    //if (max_pages > 5) { max_pages = 5; }
     let history_load_progress = html("progress", {"id": "loading_history", "max":max_pages, "value": 0});
     let history_load = html("span", {}, ["Loading...", history_load_progress]);
     project_details.append(history_load);
